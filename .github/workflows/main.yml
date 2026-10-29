@@ -1,0 +1,57 @@
+name: CI/CD Pipeline & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  check:
+    name: Kiểm tra mã nguồn (Check)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Kiểm tra sự tồn tại của 3 file bắt buộc
+        run: |
+          if [ ! -f "index.html" ] || [ ! -f "style.css" ] || [ ! -f "script.js" ]; then
+            echo "LỖI: Thiếu một trong các file bắt buộc (index.html, style.css, script.js)!"
+            exit 1
+          else
+            echo "Đã tìm thấy đủ 3 file chính."
+          fi
+
+      - name: Kiểm tra thẻ <title> trong index.html
+        run: |
+          if grep -q "<title>" index.html; then
+            echo "Thẻ <title> đã tồn tại. Kiểm tra thành công!"
+          else
+            echo "LỖI: File index.html thiếu thẻ <title>!"
+            exit 1
+          fi
+
+  deploy:
+    name: Triển khai lên GitHub Pages (Deploy)
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
